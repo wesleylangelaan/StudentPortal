@@ -3,10 +3,15 @@ package com.example.studentportal;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -17,10 +22,13 @@ import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements RecyclerView.OnItemTouchListener {
 
+    private GestureDetector mGestureDetector;
     public List<Portals> mPortals;
     TextView textView;
+    RecyclerView recyclerView;
+    PortalAdapter Adapter;
 
     //public static final String name = "Name";
     //public static final String link = "Link";
@@ -34,13 +42,36 @@ public class MainActivity extends AppCompatActivity {
 
         mPortals = new ArrayList<>();
 
-        textView = findViewById(R.id.textView);
+        /*
+            RecyclerView
+         */
+        recyclerView = findViewById(R.id.recyclerView);
+        RecyclerView.LayoutManager LayoutManager = new LinearLayoutManager(this);
+        Adapter = new PortalAdapter(this, mPortals);
+        recyclerView.setAdapter(Adapter);
+        recyclerView.setLayoutManager(LayoutManager);
+
+        /*
+            TouchListener for RecyclerView item
+         */
+        recyclerView.addOnItemTouchListener(this);
+        mGestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public boolean onSingleTapUp(MotionEvent e) {
+                return true;
+            }
+        });
+
+        /*
+            Floatig Action Button
+         */
 
         FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-               startAddPortal();
+                // Ga naar de AddPortal activity on click on FAB
+                startAddPortal();
             }
         });
     }
@@ -73,14 +104,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateUi() {
-        int size = mPortals.size();
-
-        // to clear the textview
-        textView.setText("");
-
-        for (int i = 0; i < size; i++) {
-            textView.append(" \n");
-            textView.append(mPortals.get(i).getName());
+        if (Adapter == null) {
+            Adapter = new PortalAdapter(this, mPortals);
+            recyclerView.setAdapter(Adapter);
+        } else {
+            Adapter.notifyDataSetChanged();
         }
     }
 
@@ -92,9 +120,31 @@ public class MainActivity extends AppCompatActivity {
 
                 mPortals.add(new Portals(newName,newLink));
                 updateUi();
-                //Toast.makeText(this, newName, Toast.LENGTH_SHORT).show();
-                //Toast.makeText(this, newLink, Toast.LENGTH_SHORT).show();
             }
         }
+    }
+
+    @Override
+    public boolean onInterceptTouchEvent(@NonNull RecyclerView recyclerView, @NonNull MotionEvent motionEvent) {
+        View child = recyclerView.findChildViewUnder(motionEvent.getX(), motionEvent.getY());
+        int mAdapterPosition = recyclerView.getChildAdapterPosition(child);
+
+        if (child != null && mGestureDetector.onTouchEvent(motionEvent)) {
+            Intent intent = new Intent(this, Webview.class);
+            intent.putExtra("LINK", mPortals.get(mAdapterPosition).getLink());
+            startActivity(intent);
+        }
+
+        return false;
+    }
+
+    @Override
+    public void onTouchEvent(@NonNull RecyclerView recyclerView, @NonNull MotionEvent motionEvent) {
+
+    }
+
+    @Override
+    public void onRequestDisallowInterceptTouchEvent(boolean b) {
+
     }
 }
